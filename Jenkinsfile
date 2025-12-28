@@ -27,70 +27,77 @@ pipeline {
                     def INDIVIDUAL_APPLICATION_SLUGS = params.APPLICATION_SLUGS.tokenize('|')
                     echo "Processing Application slugs: ${INDIVIDUAL_APPLICATION_SLUGS}"
 
+                    def parallelStages = [:]
+
                     for (slug in INDIVIDUAL_APPLICATION_SLUGS) {
-                        stage("Download ${slug}") {
-                            def MINIO_FILE = "/${params.PROJECT_ID}/builds/${params.BUILD_ID}/${slug}.tar.gz"
-                            echo "Downloading ${MINIO_FILE} from MinIO bucket ${MINIO_BUCKET}..."
+                        def currentSlug = slug
+                        parallelStages[currentSlug] = {
+                            stage("Download ${currentSlug}") {
+                                def MINIO_FILE = "/${params.PROJECT_ID}/builds/${params.BUILD_ID}/${currentSlug}.tar.gz"
+                                echo "Downloading ${MINIO_FILE} from MinIO bucket ${MINIO_BUCKET}..."
 
-                            minioDownload(
-                                bucket: "${MINIO_BUCKET}",
-                                file: "${MINIO_FILE}",
-                                host: "${MINIO_URL}",
-                                credentialsId: "${MINIO_CREDENTIALS_ID}",
-                                targetFolder: "${WORKSPACE}"
-                            )
-                        }
+                                minioDownload(
+                                    bucket: "${MINIO_BUCKET}",
+                                    file: "${MINIO_FILE}",
+                                    host: "${MINIO_URL}",
+                                    credentialsId: "${MINIO_CREDENTIALS_ID}",
+                                    targetFolder: "${WORKSPACE}"
+                                )
+                            }
 
-                        stage("Extract ${slug}") {
-                            echo "Extracting ${slug}.tar.gz archive..."
-                            sh """
-                                mkdir -p ${slug}
-                                tar -xzf ${slug}.tar.gz -C ${slug}
-                            """
-                            echo "Removing ${slug}.tar.gz archive"
-                            sh """
-                                rm ${slug}.tar.gz
-                            """
-                        }
-
-                        stage("Install Dependencies ${slug}") {
-                            nodejs(nodeJSInstallationName: 'node24') {
+                            stage("Extract ${currentSlug}") {
+                                echo "Extracting ${currentSlug}.tar.gz archive..."
                                 sh """
-                                    cd ${slug}
-                                    # Install pnpm globally if not already installed
-                                    if ! command -v pnpm &> /dev/null; then
-                                        npm install -g pnpm
-                                    fi
-
-                                    # Run pnpm install
-                                    pnpm install
+                                    mkdir -p ${currentSlug}
+                                    tar -xzf ${currentSlug}.tar.gz -C ${currentSlug}
+                                """
+                                echo "Removing ${currentSlug}.tar.gz archive"
+                                sh """
+                                    rm ${currentSlug}.tar.gz
                                 """
                             }
-                        }
 
-                        stage("Build Docker Image ${slug}") {
-                            echo "Building Docker image for ${slug}..."
+                            stage("Install Dependencies ${currentSlug}") {
+                                nodejs(nodeJSInstallationName: 'node24') {
+                                    sh """
+                                        cd ${currentSlug}
+                                        # Install pnpm globally if not already installed
+                                        if ! command -v pnpm &> /dev/null; then
+                                            npm install -g pnpm
+                                        fi
 
-                            // sh """
-                            //     cd ${slug}
-                            //     docker build -t "${DOCKER_IMAGE_NAME}-${slug}:${DOCKER_IMAGE_TAG}" .
-                            // """
+                                        # Run pnpm install
+                                        pnpm install
+                                    """
+                                }
+                            }
 
-                            // // Using Docker Pipeline plugin
-                            // def dockerImage = docker.build("${DOCKER_IMAGE_NAME}-${slug}:${DOCKER_IMAGE_TAG}", "${slug}")
+                            stage("Build Docker Image ${currentSlug}") {
+                                echo "Building Docker image for ${currentSlug}..."
 
-                            // // Tag as latest
-                            // dockerImage.tag('latest')
+                                // sh """
+                                //     cd ${currentSlug}
+                                //     docker build -t "${DOCKER_IMAGE_NAME}-${currentSlug}:${DOCKER_IMAGE_TAG}" .
+                                // """
 
-                            // // Optional: Push to registry if configured
-                            // if (env.DOCKER_REGISTRY && env.DOCKER_CREDENTIALS_ID) {
-                            //     docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_CREDENTIALS_ID}") {
-                            //         dockerImage.push("${DOCKER_IMAGE_TAG}")
-                            //         dockerImage.push('latest')
-                            //     }
-                            // }
+                                // // Using Docker Pipeline plugin
+                                // def dockerImage = docker.build("${DOCKER_IMAGE_NAME}-${currentSlug}:${DOCKER_IMAGE_TAG}", "${currentSlug}")
+
+                                // // Tag as latest
+                                // dockerImage.tag('latest')
+
+                                // // Optional: Push to registry if configured
+                                // if (env.DOCKER_REGISTRY && env.DOCKER_CREDENTIALS_ID) {
+                                //     docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_CREDENTIALS_ID}") {
+                                //         dockerImage.push("${DOCKER_IMAGE_TAG}")
+                                //         dockerImage.push('latest')
+                                //     }
+                                // }
+                            }
                         }
                     }
+
+                    parallel parallelStages
                 }
             }
         }
