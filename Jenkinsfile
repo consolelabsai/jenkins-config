@@ -104,13 +104,13 @@ pipeline {
         failure {
             echo 'Pipeline failed!'
         }
-//         always {
-//             // Cleanup
-//             script {
-//                 sh """
-//                     rm -rf *
-//                 """
-//             }
-//         }
+        always {
+            // Cleanup
+            script {
+                sh """
+                    rm -rf *
+                """
+            }
+        }
     }
 }
