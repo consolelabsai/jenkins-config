@@ -3,7 +3,7 @@ pipeline {
 
     parameters {
         string(name: 'PROJECT_ID', description: 'Project ID to build')
-        string(name: 'WORKFLOW_ID', description: 'Workflow ID to build')
+        string(name: 'BUILD_ID', description: 'Build ID to build')
     }
 
     environment {
@@ -11,7 +11,7 @@ pipeline {
         MINIO_CREDENTIALS_ID = 'minio-credentials'  // Jenkins credential ID for MinIO
         MINIO_URL = 'http://nginx:9000'     // Update with your MinIO server URL
         MINIO_BUCKET = 'builds'           // Update with your bucket name
-        MINIO_FILE = "/${params.PROJECT_ID}/builds/${params.WORKFLOW_ID}/applicationName.tar.gz"          // Update with your file name
+        MINIO_FILE = "/${params.PROJECT_ID}/builds/${params.BUILD_ID}/applicationName.tar.gz"          // Update with your file name
 
         // Docker Configuration
         DOCKER_IMAGE_NAME = 'test-image'       // Update with your image name
