@@ -1,7 +1,3 @@
-// Pipeline parameters
-// PROJECT_ID
-// WORKFLOW_ID
-
 pipeline {
     agent any
 
@@ -15,7 +11,7 @@ pipeline {
         MINIO_CREDENTIALS_ID = 'minio-credentials'  // Jenkins credential ID for MinIO
         MINIO_URL = 'http://nginx:9000'     // Update with your MinIO server URL
         MINIO_BUCKET = 'builds'           // Update with your bucket name
-        MINIO_FILE = "/${params.PROJECT_ID}/builds/build__f3b23bb3-cf6a-4eb0-8117-88fb8a12d208/applicationName.tar.gz"          // Update with your file name
+        MINIO_FILE = "/${params.PROJECT_ID}/builds/${params.WORKFLOW_ID}/applicationName.tar.gz"          // Update with your file name
 
         // Docker Configuration
         DOCKER_IMAGE_NAME = 'test-image'       // Update with your image name
@@ -78,9 +74,9 @@ pipeline {
                 script {
                     echo 'Building Docker image using Docker Pipeline plugin...'
 
-                    sh """
-                        docker build -t "${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}" .
-                    """
+                    // sh """
+                    //     docker build -t "${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}" .
+                    // """
 
                     // // Using Docker Pipeline plugin
                     // def dockerImage = docker.build("${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}")
