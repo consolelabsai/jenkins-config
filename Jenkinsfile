@@ -27,6 +27,7 @@ pipeline {
                     def INDIVIDUAL_APPLICATION_SLUGS = params.APPLICATION_SLUGS.tokenize('|')
                     echo "Processing Application slugs: ${INDIVIDUAL_APPLICATION_SLUGS}"
 
+                    def BUILD_DIR = "${params.BUILD_ID}"
                     def parallelStages = [:]
 
                     for (slug in INDIVIDUAL_APPLICATION_SLUGS) {
@@ -48,8 +49,8 @@ pipeline {
                             stage("Extract ${currentSlug}") {
                                 echo "Extracting ${currentSlug}.tar.gz archive..."
                                 sh """
-                                    mkdir -p ${currentSlug}
-                                    tar -xzf ${currentSlug}.tar.gz -C ${currentSlug}
+                                    mkdir -p ${BUILD_DIR}/${currentSlug}
+                                    tar -xzf ${currentSlug}.tar.gz -C ${BUILD_DIR}/${currentSlug}
                                 """
                                 echo "Removing ${currentSlug}.tar.gz archive"
                                 sh """
@@ -60,7 +61,7 @@ pipeline {
                             stage("Install Dependencies ${currentSlug}") {
                                 nodejs(nodeJSInstallationName: 'node24') {
                                     sh """
-                                        cd ${currentSlug}
+                                        cd ${BUILD_DIR}/${currentSlug}
                                         # Install pnpm globally if not already installed
                                         if ! command -v pnpm &> /dev/null; then
                                             npm install -g pnpm
@@ -76,12 +77,12 @@ pipeline {
                                 echo "Building Docker image for ${currentSlug}..."
 
                                 // sh """
-                                //     cd ${currentSlug}
+                                //     cd ${BUILD_DIR}/${currentSlug}
                                 //     docker build -t "${DOCKER_IMAGE_NAME}-${currentSlug}:${DOCKER_IMAGE_TAG}" .
                                 // """
 
                                 // // Using Docker Pipeline plugin
-                                // def dockerImage = docker.build("${DOCKER_IMAGE_NAME}-${currentSlug}:${DOCKER_IMAGE_TAG}", "${currentSlug}")
+                                // def dockerImage = docker.build("${DOCKER_IMAGE_NAME}-${currentSlug}:${DOCKER_IMAGE_TAG}", "${BUILD_DIR}/${currentSlug}")
 
                                 // // Tag as latest
                                 // dockerImage.tag('latest')
@@ -115,7 +116,7 @@ pipeline {
             // Cleanup
             script {
                 sh """
-                    rm -rf *
+                    rm -rf ${params.BUILD_ID}
                 """
             }
         }
