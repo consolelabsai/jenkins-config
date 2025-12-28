@@ -21,83 +21,75 @@ pipeline {
     }
 
     stages {
-        stage('Download from MinIO') {
+        stage('Process Applications') {
             steps {
                 script {
                     def INDIVIDUAL_APPLICATION_SLUGS = params.APPLICATION_SLUGS.tokenize('|')
-                    echo "Iterating over Application slugs ${INDIVIDUAL_APPLICATION_SLUGS}"
+                    echo "Processing Application slugs: ${INDIVIDUAL_APPLICATION_SLUGS}"
 
                     for (slug in INDIVIDUAL_APPLICATION_SLUGS) {
-                        def MINIO_FILE = "/${params.PROJECT_ID}/builds/${params.BUILD_ID}/${slug}.tar.gz"
+                        stage("Download ${slug}") {
+                            def MINIO_FILE = "/${params.PROJECT_ID}/builds/${params.BUILD_ID}/${slug}.tar.gz"
+                            echo "Downloading ${MINIO_FILE} from MinIO bucket ${MINIO_BUCKET}..."
 
-                        echo "Downloading ${MINIO_FILE} from MinIO bucket ${MINIO_BUCKET}..."
+                            minioDownload(
+                                bucket: "${MINIO_BUCKET}",
+                                file: "${MINIO_FILE}",
+                                host: "${MINIO_URL}",
+                                credentialsId: "${MINIO_CREDENTIALS_ID}",
+                                targetFolder: "${WORKSPACE}"
+                            )
+                        }
 
-                        // Using MinIO plugin
-                        minioDownload(
-                            bucket: "${MINIO_BUCKET}",
-                            file: "${MINIO_FILE}",
-                            host: "${MINIO_URL}",
-                            credentialsId: "${MINIO_CREDENTIALS_ID}",
-                            targetFolder: "${WORKSPACE}"
-                        )
+                        stage("Extract ${slug}") {
+                            echo "Extracting ${slug}.tar.gz archive..."
+                            sh """
+                                tar -xzf ${slug}.tar.gz
+                            """
+                            echo "Removing ${slug}.tar.gz archive"
+                            sh """
+                                rm ${slug}.tar.gz
+                            """
+                        }
+
+                        stage("Install Dependencies ${slug}") {
+                            nodejs(nodeJSInstallationName: 'node24') {
+                                sh """
+                                    cd ${slug}
+                                    # Install pnpm globally if not already installed
+                                    if ! command -v pnpm &> /dev/null; then
+                                        npm install -g pnpm
+                                    fi
+
+                                    # Run pnpm install
+                                    pnpm install
+                                """
+                            }
+                        }
+
+                        stage("Build Docker Image ${slug}") {
+                            echo "Building Docker image for ${slug}..."
+
+                            // sh """
+                            //     cd ${slug}
+                            //     docker build -t "${DOCKER_IMAGE_NAME}-${slug}:${DOCKER_IMAGE_TAG}" .
+                            // """
+
+                            // // Using Docker Pipeline plugin
+                            // def dockerImage = docker.build("${DOCKER_IMAGE_NAME}-${slug}:${DOCKER_IMAGE_TAG}", "${slug}")
+
+                            // // Tag as latest
+                            // dockerImage.tag('latest')
+
+                            // // Optional: Push to registry if configured
+                            // if (env.DOCKER_REGISTRY && env.DOCKER_CREDENTIALS_ID) {
+                            //     docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_CREDENTIALS_ID}") {
+                            //         dockerImage.push("${DOCKER_IMAGE_TAG}")
+                            //         dockerImage.push('latest')
+                            //     }
+                            // }
+                        }
                     }
-                }
-            }
-        }
-
-        stage('Extract Archive') {
-            steps {
-                script {
-                    echo 'Extracting tar.gz archive...'
-                    sh """
-                        tar -xzf applicationName.tar.gz
-                    """
-                    echo 'Removing tar.gz archive'
-                    sh """
-                        rm applicationName.tar.gz
-                    """
-                }
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                nodejs(nodeJSInstallationName: 'node24') {
-                    sh '''
-                        # Install pnpm globally if not already installed
-                        if ! command -v pnpm &> /dev/null; then
-                            npm install -g pnpm
-                        fi
-
-                        # Run pnpm install
-                        pnpm install
-                    '''
-                }
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    echo 'Building Docker image using Docker Pipeline plugin...'
-
-                    // sh """
-                    //     docker build -t "${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}" .
-                    // """
-
-                    // // Using Docker Pipeline plugin
-                    // def dockerImage = docker.build("${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}")
-
-                    // // Tag as latest
-                    // dockerImage.tag('latest')
-
-                    // // Optional: Push to registry if configured
-                    // if (env.DOCKER_REGISTRY && env.DOCKER_CREDENTIALS_ID) {
-                    //     docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_CREDENTIALS_ID}") {
-                    //         dockerImage.push("${DOCKER_IMAGE_TAG}")
-                    //         dockerImage.push('latest')
-                    //     }
-                    // }
                 }
             }
         }
