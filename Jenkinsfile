@@ -28,8 +28,6 @@ pipeline {
                 script {
                     echo "Iterating over Application slugs ${INDIVIDUAL_APPLICATION_SLUGS}"
 
-                    def applicationSlugs = [ 'core-service', 'application-service' ]
-
                     for (slug in applicationSlugs) {
                         def MINIO_FILE = "/${params.PROJECT_ID}/builds/${params.BUILD_ID}/${slug}.tar.gz"
 
