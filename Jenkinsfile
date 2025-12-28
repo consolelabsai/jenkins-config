@@ -26,6 +26,8 @@ pipeline {
         stage('Download from MinIO') {
             steps {
                 script {
+                    echo "Iterating over Application slugs ${INDIVIDUAL_APPLICATION_SLUGS}"
+
                     for (slug in INDIVIDUAL_APPLICATION_SLUGS) {
                         def MINIO_FILE = "/${params.PROJECT_ID}/builds/${params.BUILD_ID}/${slug}.tar.gz"
 
