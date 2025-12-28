@@ -73,6 +73,21 @@ pipeline {
                                 }
                             }
 
+                            stage("Create Migrations ${currentSlug}") {
+                                nodejs(nodeJSInstallationName: 'node24') {
+                                    sh """
+                                        cd ${BUILD_DIR}/${currentSlug}
+                                        # Install pnpm globally if not already installed
+                                        if ! command -v pnpm &> /dev/null; then
+                                            npm install -g pnpm
+                                        fi
+
+                                        # Run pnpm install
+                                        pnpm migrations-create
+                                    """
+                                }
+                            }
+
                             stage("Build Docker Image ${currentSlug}") {
                                 echo "Building Docker image for ${currentSlug}..."
 
