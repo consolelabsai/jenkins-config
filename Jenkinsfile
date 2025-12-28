@@ -5,12 +5,17 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'PROJECT_ID', description: 'Project ID to build')
+        string(name: 'WORKFLOW_ID', description: 'Workflow ID to build')
+    }
+
     environment {
         // MinIO Configuration
         MINIO_CREDENTIALS_ID = 'minio-credentials'  // Jenkins credential ID for MinIO
         MINIO_URL = 'http://nginx:9000'     // Update with your MinIO server URL
         MINIO_BUCKET = 'builds'           // Update with your bucket name
-        MINIO_FILE = '/${PROJECT_ID}/builds/build__f3b23bb3-cf6a-4eb0-8117-88fb8a12d208/applicationName.tar.gz'          // Update with your file name
+        MINIO_FILE = "/${params.PROJECT_ID}/builds/build__f3b23bb3-cf6a-4eb0-8117-88fb8a12d208/applicationName.tar.gz"          // Update with your file name
 
         // Docker Configuration
         DOCKER_IMAGE_NAME = 'test-image'       // Update with your image name
