@@ -4,18 +4,19 @@ pipeline {
     parameters {
         string(name: 'PROJECT_ID', description: 'Project ID to build')
         string(name: 'BUILD_ID', description: 'Build ID to build')
+        string(name: 'APPLICATION_SLUGS', description: 'Slugs of applications separated with a pipe (|).')
     }
 
     environment {
+        INDIVIDUAL_APPLICATION_SLUGS = params.APPLICATION_SLUGS.split('|')
+
         // MinIO Configuration
         MINIO_CREDENTIALS_ID = 'minio-credentials'  // Jenkins credential ID for MinIO
-        MINIO_URL = 'http://nginx:9000'     // Update with your MinIO server URL
-        MINIO_BUCKET = 'builds'           // Update with your bucket name
-        MINIO_FILE = "/${params.PROJECT_ID}/builds/${params.BUILD_ID}/applicationName.tar.gz"          // Update with your file name
+        MINIO_URL = 'http://nginx:9000'             // Update with your MinIO server URL
 
         // Docker Configuration
-        DOCKER_IMAGE_NAME = 'test-image'       // Update with your image name
-        DOCKER_IMAGE_TAG = "v1"        // Or use your preferred tagging strategy
+        DOCKER_IMAGE_NAME = 'test-image'            // Update with your image name
+        DOCKER_IMAGE_TAG = "v1"                     // Or use your preferred tagging strategy
         DOCKER_REGISTRY = ''                        // Optional: Docker registry URL (e.g., 'registry.example.com')
         DOCKER_CREDENTIALS_ID = ''                  // Optional: Jenkins credential ID for Docker registry
     }
@@ -24,16 +25,20 @@ pipeline {
         stage('Download from MinIO') {
             steps {
                 script {
-                    echo "Downloading ${MINIO_FILE} from MinIO bucket ${MINIO_BUCKET}..."
+                    for (slug in INDIVIDUAL_APPLICATION_SLUGS) {
+                        def MINIO_FILE = "/${params.PROJECT_ID}/builds/${params.BUILD_ID}/${slug}.tar.gz"
 
-                    // Using MinIO plugin
-                    minioDownload(
-                        bucket: "${MINIO_BUCKET}",
-                        file: "${MINIO_FILE}",
-                        host: "${MINIO_URL}",
-                        credentialsId: "${MINIO_CREDENTIALS_ID}",
-                        targetFolder: "${WORKSPACE}"
-                    )
+                        echo "Downloading ${MINIO_FILE} from MinIO bucket ${MINIO_BUCKET}..."
+
+                        // Using MinIO plugin
+                        minioDownload(
+                            bucket: 'builds',
+                            file: "${MINIO_FILE}",
+                            host: "${MINIO_URL}",
+                            credentialsId: "${MINIO_CREDENTIALS_ID}",
+                            targetFolder: "${WORKSPACE}"
+                        )
+                    }
                 }
             }
         }
@@ -104,13 +109,13 @@ pipeline {
         failure {
             echo 'Pipeline failed!'
         }
-        always {
-            // Cleanup
-            script {
-                sh """
-                    rm -rf *
-                """
-            }
-        }
+//         always {
+//             // Cleanup
+//             script {
+//                 sh """
+//                     rm -rf *
+//                 """
+//             }
+//         }
     }
 }
