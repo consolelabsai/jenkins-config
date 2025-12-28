@@ -28,7 +28,7 @@ pipeline {
                 script {
                     echo "Iterating over Application slugs ${INDIVIDUAL_APPLICATION_SLUGS}"
 
-                    for (slug in applicationSlugs) {
+                    for (slug in INDIVIDUAL_APPLICATION_SLUGS) {
                         def MINIO_FILE = "/${params.PROJECT_ID}/builds/${params.BUILD_ID}/${slug}.tar.gz"
 
                         echo "Downloading ${MINIO_FILE} from MinIO bucket ${MINIO_BUCKET}..."
