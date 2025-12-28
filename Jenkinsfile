@@ -83,7 +83,7 @@ pipeline {
                                         fi
 
                                         # Run pnpm install
-                                        pnpm migrations-create
+                                        pnpm migrations-create --initial
                                     """
                                 }
                             }
