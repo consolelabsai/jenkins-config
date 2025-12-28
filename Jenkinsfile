@@ -8,8 +8,6 @@ pipeline {
     }
 
     environment {
-        INDIVIDUAL_APPLICATION_SLUGS = params.APPLICATION_SLUGS.tokenize('\\|')
-
         // MinIO Configuration
         MINIO_CREDENTIALS_ID = 'minio-credentials'  // Jenkins credential ID for MinIO
         MINIO_URL = 'http://nginx:9000'
@@ -26,6 +24,7 @@ pipeline {
         stage('Download from MinIO') {
             steps {
                 script {
+                    def INDIVIDUAL_APPLICATION_SLUGS = params.APPLICATION_SLUGS.tokenize('|')
                     echo "Iterating over Application slugs ${INDIVIDUAL_APPLICATION_SLUGS}"
 
                     for (slug in INDIVIDUAL_APPLICATION_SLUGS) {
