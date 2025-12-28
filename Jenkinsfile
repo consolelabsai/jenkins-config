@@ -12,7 +12,8 @@ pipeline {
 
         // MinIO Configuration
         MINIO_CREDENTIALS_ID = 'minio-credentials'  // Jenkins credential ID for MinIO
-        MINIO_URL = 'http://nginx:9000'             // Update with your MinIO server URL
+        MINIO_URL = 'http://nginx:9000'
+        MINIO_BUCKET = 'builds'
 
         // Docker Configuration
         DOCKER_IMAGE_NAME = 'test-image'            // Update with your image name
@@ -32,7 +33,7 @@ pipeline {
 
                         // Using MinIO plugin
                         minioDownload(
-                            bucket: 'builds',
+                            bucket: "${MINIO_BUCKET}",
                             file: "${MINIO_FILE}",
                             host: "${MINIO_URL}",
                             credentialsId: "${MINIO_CREDENTIALS_ID}",
