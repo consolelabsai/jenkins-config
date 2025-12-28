@@ -44,7 +44,8 @@ pipeline {
                         stage("Extract ${slug}") {
                             echo "Extracting ${slug}.tar.gz archive..."
                             sh """
-                                tar -xzf ${slug}.tar.gz
+                                mkdir -p ${slug}
+                                tar -xzf ${slug}.tar.gz -C ${slug}
                             """
                             echo "Removing ${slug}.tar.gz archive"
                             sh """
