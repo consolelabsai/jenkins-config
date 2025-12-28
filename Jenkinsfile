@@ -1,0 +1,115 @@
+// Pipeline parameters
+// PROJECT_ID
+// WORKFLOW_ID
+
+pipeline {
+    agent any
+
+    environment {
+        // MinIO Configuration
+        MINIO_CREDENTIALS_ID = 'minio-credentials'  // Jenkins credential ID for MinIO
+        MINIO_URL = 'http://nginx:9000'     // Update with your MinIO server URL
+        MINIO_BUCKET = 'builds'           // Update with your bucket name
+        MINIO_FILE = '/${PROJECT_ID}/builds/build__f3b23bb3-cf6a-4eb0-8117-88fb8a12d208/applicationName.tar.gz'          // Update with your file name
+
+        // Docker Configuration
+        DOCKER_IMAGE_NAME = 'test-image'       // Update with your image name
+        DOCKER_IMAGE_TAG = "v1"        // Or use your preferred tagging strategy
+        DOCKER_REGISTRY = ''                        // Optional: Docker registry URL (e.g., 'registry.example.com')
+        DOCKER_CREDENTIALS_ID = ''                  // Optional: Jenkins credential ID for Docker registry
+    }
+
+    stages {
+        stage('Download from MinIO') {
+            steps {
+                script {
+                    echo "Downloading ${MINIO_FILE} from MinIO bucket ${MINIO_BUCKET}..."
+
+                    // Using MinIO plugin
+                    minioDownload(
+                        bucket: "${MINIO_BUCKET}",
+                        file: "${MINIO_FILE}",
+                        host: "${MINIO_URL}",
+                        credentialsId: "${MINIO_CREDENTIALS_ID}",
+                        targetFolder: "${WORKSPACE}"
+                    )
+                }
+            }
+        }
+
+        stage('Extract Archive') {
+            steps {
+                script {
+                    echo 'Extracting tar.gz archive...'
+                    sh """
+                        tar -xzf applicationName.tar.gz
+                    """
+                    echo 'Removing tar.gz archive'
+                    sh """
+                        rm applicationName.tar.gz
+                    """
+                }
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                nodejs(nodeJSInstallationName: 'node24') {
+                    sh '''
+                        # Install pnpm globally if not already installed
+                        if ! command -v pnpm &> /dev/null; then
+                            npm install -g pnpm
+                        fi
+
+                        # Run pnpm install
+                        pnpm install
+                    '''
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    echo 'Building Docker image using Docker Pipeline plugin...'
+
+                    sh """
+                        docker build -t "${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}" .
+                    """
+
+                    // // Using Docker Pipeline plugin
+                    // def dockerImage = docker.build("${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}")
+
+                    // // Tag as latest
+                    // dockerImage.tag('latest')
+
+                    // // Optional: Push to registry if configured
+                    // if (env.DOCKER_REGISTRY && env.DOCKER_CREDENTIALS_ID) {
+                    //     docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_CREDENTIALS_ID}") {
+                    //         dockerImage.push("${DOCKER_IMAGE_TAG}")
+                    //         dockerImage.push('latest')
+                    //     }
+                    // }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+            echo "Docker image: ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+        always {
+            // Cleanup
+            script {
+                sh """
+                    rm -rf *
+                """
+            }
+        }
+    }
+}
