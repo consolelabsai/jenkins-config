@@ -8,7 +8,7 @@ pipeline {
     }
 
     environment {
-        INDIVIDUAL_APPLICATION_SLUGS = params.APPLICATION_SLUGS.tokenize('|')
+        INDIVIDUAL_APPLICATION_SLUGS = params.APPLICATION_SLUGS.tokenize('\\|')
 
         // MinIO Configuration
         MINIO_CREDENTIALS_ID = 'minio-credentials'  // Jenkins credential ID for MinIO
