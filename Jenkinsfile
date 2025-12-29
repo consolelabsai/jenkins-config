@@ -25,7 +25,7 @@ pipeline {
             steps {
                 script {
                     def INDIVIDUAL_SERVICE_SLUGS = params.SERVICE_SLUGS.tokenize('|')
-                    echo "Processing Application slugs: ${INDIVIDUAL_SERVICE_SLUGS}"
+                    echo "Processing service slugs: ${INDIVIDUAL_SERVICE_SLUGS}"
 
                     def BUILD_DIR = "${params.BUILD_ID}"
                     def parallelStages = [:]
@@ -72,21 +72,6 @@ pipeline {
                                     """
                                 }
                             }
-
-//                             stage("Create Migrations ${currentSlug}") {
-//                                 nodejs(nodeJSInstallationName: 'node24') {
-//                                     sh """
-//                                         cd ${BUILD_DIR}/${currentSlug}
-//                                         # Install pnpm globally if not already installed
-//                                         if ! command -v pnpm &> /dev/null; then
-//                                             npm install -g pnpm
-//                                         fi
-//
-//                                         # Run pnpm install
-//                                         pnpm migrations-create --initial
-//                                     """
-//                                 }
-//                             }
 
                             stage("Build Docker Image ${currentSlug}") {
                                 echo "Building Docker image for ${currentSlug}..."
