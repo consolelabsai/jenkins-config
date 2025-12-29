@@ -4,7 +4,7 @@ pipeline {
     parameters {
         string(name: 'PROJECT_ID', description: 'Project ID to build')
         string(name: 'BUILD_ID', description: 'Build ID to build')
-        string(name: 'APPLICATION_SLUGS', description: 'Slugs of applications separated with a pipe (|).')
+        string(name: 'SERVICE_SLUGS', description: 'Slugs of services separated with a pipe (|).')
     }
 
     environment {
@@ -21,16 +21,16 @@ pipeline {
     }
 
     stages {
-        stage('Process Applications') {
+        stage('Process Services') {
             steps {
                 script {
-                    def INDIVIDUAL_APPLICATION_SLUGS = params.APPLICATION_SLUGS.tokenize('|')
-                    echo "Processing Application slugs: ${INDIVIDUAL_APPLICATION_SLUGS}"
+                    def INDIVIDUAL_SERVICE_SLUGS = params.SERVICE_SLUGS.tokenize('|')
+                    echo "Processing Application slugs: ${INDIVIDUAL_SERVICE_SLUGS}"
 
                     def BUILD_DIR = "${params.BUILD_ID}"
                     def parallelStages = [:]
 
-                    for (slug in INDIVIDUAL_APPLICATION_SLUGS) {
+                    for (slug in INDIVIDUAL_SERVICE_SLUGS) {
                         def currentSlug = slug
                         parallelStages[currentSlug] = {
                             stage("Download ${currentSlug}") {
